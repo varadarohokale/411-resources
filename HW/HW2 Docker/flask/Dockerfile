@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
 # Copy the current directory contents into the container at /app
 COPY . /app
 
+ENV PORT=5002
+
 # Normally we would install any needed packages specified in requirements.txt
 # RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install flask
@@ -20,7 +22,7 @@ RUN pip install flask
 # Make port 5000 available to the world outside this container
 # Note that this is for the purposes of documentation
 # The port is actually exposed when you run the container from the command line
-EXPOSE 5000
+EXPOSE $PORT
 
 # Run app.py when the container launches
 CMD ["python3", "app.py"]
