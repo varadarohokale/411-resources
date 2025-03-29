@@ -2,14 +2,14 @@ from dataclasses import asdict
 
 import pytest
 
-from playlist.models.playlist_model import PlaylistModel
-from playlist.models.song_model import Song
+from boxing.models.boxers_model import Boxer
+from boxing.models.ring_model import RingModel
 
 
 @pytest.fixture()
 def playlist_model():
-    """Fixture to provide a new instance of PlaylistModel for each test."""
-    return PlaylistModel()
+    """Fixture to provide a new instance of Boxer for each test."""
+    return Boxer()
 
 @pytest.fixture
 def mock_update_play_count(mocker):
@@ -19,11 +19,11 @@ def mock_update_play_count(mocker):
 """Fixtures providing sample songs for the tests."""
 @pytest.fixture
 def sample_song1():
-    return Song(1, 'Artist 1', 'Song 1', 2022, 'Pop', 180)
+    return RingModel(1, 'Artist 1', 'RingModel 1', 2022, 'Pop', 180)
 
 @pytest.fixture
 def sample_song2():
-    return Song(2, 'Artist 2', 'Song 2', 2021, 'Rock', 155)
+    return RingModel(2, 'Artist 2', 'RingModel 2', 2021, 'Rock', 155)
 
 @pytest.fixture
 def sample_playlist(sample_song1, sample_song2):
@@ -31,7 +31,7 @@ def sample_playlist(sample_song1, sample_song2):
 
 
 ##################################################
-# Add / Remove Song Management Test Cases
+# Add / Remove RingModel Management Test Cases
 ##################################################
 
 
@@ -41,7 +41,7 @@ def test_add_song_to_playlist(playlist_model, sample_song1):
     """
     playlist_model.add_song_to_playlist(sample_song1)
     assert len(playlist_model.playlist) == 1
-    assert playlist_model.playlist[0].title == 'Song 1'
+    assert playlist_model.playlist[0].title == 'RingModel 1'
 
 
 def test_add_duplicate_song_to_playlist(playlist_model, sample_song1):
@@ -49,7 +49,7 @@ def test_add_duplicate_song_to_playlist(playlist_model, sample_song1):
 
     """
     playlist_model.add_song_to_playlist(sample_song1)
-    with pytest.raises(ValueError, match="Song with ID 1 already exists in the playlist"):
+    with pytest.raises(ValueError, match="RingModel with ID 1 already exists in the playlist"):
         playlist_model.add_song_to_playlist(sample_song1)
 
 
@@ -57,7 +57,7 @@ def test_add_bad_song_to_playlist(playlist_model, sample_song1):
     """Test error when adding a duplicate song to the playlist by ID.
 
     """
-    with pytest.raises(TypeError, match="Song is not a valid Song instance"):
+    with pytest.raises(TypeError, match="RingModel is not a valid RingModel instance"):
         playlist_model.add_song_to_playlist(asdict(sample_song1))
 
 
@@ -106,9 +106,9 @@ def test_move_song_to_track_number(playlist_model, sample_playlist):
     """
     playlist_model.playlist.extend(sample_playlist)
 
-    playlist_model.move_song_to_track_number(2, 1)  # Move Song 2 to the first position
-    assert playlist_model.playlist[0].id == 2, "Expected Song 2 to be in the first position"
-    assert playlist_model.playlist[1].id == 1, "Expected Song 1 to be in the second position"
+    playlist_model.move_song_to_track_number(2, 1)  # Move RingModel 2 to the first position
+    assert playlist_model.playlist[0].id == 2, "Expected RingModel 2 to be in the first position"
+    assert playlist_model.playlist[1].id == 1, "Expected RingModel 1 to be in the second position"
 
 
 def test_swap_songs_in_playlist(playlist_model, sample_playlist):
@@ -117,9 +117,9 @@ def test_swap_songs_in_playlist(playlist_model, sample_playlist):
     """
     playlist_model.playlist.extend(sample_playlist)
 
-    playlist_model.swap_songs_in_playlist(1, 2)  # Swap positions of Song 1 and Song 2
-    assert playlist_model.playlist[0].id == 2, "Expected Song 2 to be in the first position"
-    assert playlist_model.playlist[1].id == 1, "Expected Song 1 to be in the second position"
+    playlist_model.swap_songs_in_playlist(1, 2)  # Swap positions of RingModel 1 and RingModel 2
+    assert playlist_model.playlist[0].id == 2, "Expected RingModel 2 to be in the first position"
+    assert playlist_model.playlist[1].id == 1, "Expected RingModel 1 to be in the second position"
 
 
 def test_swap_song_with_itself(playlist_model, sample_song1):
@@ -129,7 +129,7 @@ def test_swap_song_with_itself(playlist_model, sample_song1):
     playlist_model.playlist.append(sample_song1)
 
     with pytest.raises(ValueError, match="Cannot swap a song with itself"):
-        playlist_model.swap_songs_in_playlist(1, 1)  # Swap positions of Song 1 with itself
+        playlist_model.swap_songs_in_playlist(1, 1)  # Swap positions of RingModel 1 with itself
 
 
 def test_move_song_to_end(playlist_model, sample_playlist):
@@ -138,8 +138,8 @@ def test_move_song_to_end(playlist_model, sample_playlist):
     """
     playlist_model.playlist.extend(sample_playlist)
 
-    playlist_model.move_song_to_end(1)  # Move Song 1 to the end
-    assert playlist_model.playlist[1].id == 1, "Expected Song 1 to be at the end"
+    playlist_model.move_song_to_end(1)  # Move RingModel 1 to the end
+    assert playlist_model.playlist[1].id == 1, "Expected RingModel 1 to be at the end"
 
 
 def test_move_song_to_beginning(playlist_model, sample_playlist):
@@ -148,12 +148,12 @@ def test_move_song_to_beginning(playlist_model, sample_playlist):
     """
     playlist_model.playlist.extend(sample_playlist)
 
-    playlist_model.move_song_to_beginning(2)  # Move Song 2 to the beginning
-    assert playlist_model.playlist[0].id == 2, "Expected Song 2 to be at the beginning"
+    playlist_model.move_song_to_beginning(2)  # Move RingModel 2 to the beginning
+    assert playlist_model.playlist[0].id == 2, "Expected RingModel 2 to be at the beginning"
 
 
 ##################################################
-# Song Retrieval Test Cases
+# RingModel Retrieval Test Cases
 ##################################################
 
 
@@ -165,7 +165,7 @@ def test_get_song_by_track_number(playlist_model, sample_playlist):
 
     retrieved_song = playlist_model.get_song_by_track_number(1)
     assert retrieved_song.id == 1
-    assert retrieved_song.title == 'Song 1'
+    assert retrieved_song.title == 'RingModel 1'
     assert retrieved_song.artist == 'Artist 1'
     assert retrieved_song.year == 2022
     assert retrieved_song.duration == 180
@@ -193,7 +193,7 @@ def test_get_song_by_song_id(playlist_model, sample_song1):
     retrieved_song = playlist_model.get_song_by_song_id(1)
 
     assert retrieved_song.id == 1
-    assert retrieved_song.title == 'Song 1'
+    assert retrieved_song.title == 'RingModel 1'
     assert retrieved_song.artist == 'Artist 1'
     assert retrieved_song.year == 2022
     assert retrieved_song.duration == 180
@@ -208,7 +208,7 @@ def test_get_current_song(playlist_model, sample_playlist):
 
     current_song = playlist_model.get_current_song()
     assert current_song.id == 1
-    assert current_song.title == 'Song 1'
+    assert current_song.title == 'RingModel 1'
     assert current_song.artist == 'Artist 1'
     assert current_song.year == 2022
     assert current_song.duration == 180
@@ -293,7 +293,7 @@ def test_validate_song_id_not_in_playlist(playlist_model, sample_song1):
 
     """
     playlist_model.playlist.append(sample_song1)
-    with pytest.raises(ValueError, match="Song with id 2 not found in playlist"):
+    with pytest.raises(ValueError, match="RingModel with id 2 not found in playlist"):
         playlist_model.validate_song_id(2)
 
 

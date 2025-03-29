@@ -4,15 +4,9 @@ import sqlite3
 
 import pytest
 
-from playlist.models.song_model import (
-    Song,
-    create_song,
-    delete_song,
-    get_song_by_id,
-    get_song_by_compound_key,
-    get_all_songs,
-    get_random_song,
-    update_play_count
+from boxing.models.ring_model import (
+    RingModel
+    
 )
 
 ######################################################
@@ -41,7 +35,7 @@ def mock_cursor(mocker):
     def mock_get_db_connection():
         yield mock_conn  # Yield the mocked connection object
 
-    mocker.patch("playlist.models.song_model.get_db_connection", mock_get_db_connection)
+    mocker.patch("boxing.models.ring_model.get_db_connection", mock_get_db_connection)
 
     return mock_cursor  # Return the mock cursor so we can set expectations per test
 
