@@ -14,6 +14,17 @@ RANDOM_ORG_URL = os.getenv("RANDOM_ORG_URL",
 
 
 def get_random() -> float:
+    """
+    Fetches a random float from random.org.
+
+    Returns:
+        float: A random float value.
+
+    Raises:
+        RuntimeError: If the request to random.org fails.
+        ValueError: If the response from random.org is not a valid response.
+    """
+    logger.info("Attempting to get a random number.")
     try:
         response = requests.get(RANDOM_ORG_URL, timeout=5)
 
@@ -27,10 +38,13 @@ def get_random() -> float:
         except ValueError:
             raise ValueError(f"Invalid response from random.org: {random_number_str}")
 
+        logger.info("Successful received a random number.")
         return random_number
 
     except requests.exceptions.Timeout:
+        logger.error("Request to random.org timed out.")
         raise RuntimeError("Request to random.org timed out.")
 
     except requests.exceptions.RequestException as e:
+        logger.error(f"Request to random.org failed: {e}")
         raise RuntimeError(f"Request to random.org failed: {e}")
