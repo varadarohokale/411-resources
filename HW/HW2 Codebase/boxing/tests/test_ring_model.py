@@ -1,369 +1,151 @@
 from contextlib import contextmanager
-import re
-import sqlite3
 
 import pytest
+from boxing.models.boxers_model import Boxer
+from boxing.models.ring_model import RingModel
+from boxing.utils.sql_utils import get_db_connection
 
-from boxing.models.ring_model import (
-    RingModel
+
+@pytest.fixture()
+def sample_boxer1():
+    return Boxer(id=1, name='Boxer 1', weight=180, height=70, reach=75, age=30, weight_class='MIDDLEWEIGHT')
+
+@pytest.fixture()
+def sample_boxer2():
+    return Boxer(id=2, name='Boxer 2', weight=175, height=68, reach=72, age=28, weight_class='MIDDLEWEIGHT')
+
+@pytest.fixture()
+def sample_boxer3():
+    return Boxer(id=3, name='Boxer 3', weight=176, height=69, reach=73, age=29, weight_class='MIDDLEWEIGHT')
+
+@pytest.fixture()
+def ring_model():
+    """Fixture to provide a new instance of RingModel for each test."""
+    return RingModel()
+
+
+def test_enter_ring_valid_boxer(ring_model, sample_boxer1):
+    """Test that a valid Boxer can be added to the ring.
+
+    """
     
-)
-
-######################################################
-#
-#    Fixtures
-#
-######################################################
-
-def normalize_whitespace(sql_query: str) -> str:
-    return re.sub(r'\s+', ' ', sql_query).strip()
-
-# Mocking the database connection for tests
-@pytest.fixture
-def mock_cursor(mocker):
-    mock_conn = mocker.Mock()
-    mock_cursor = mocker.Mock()
-
-    # Mock the connection's cursor
-    mock_conn.cursor.return_value = mock_cursor
-    mock_cursor.fetchone.return_value = None  # Default return for queries
-    mock_cursor.fetchall.return_value = []
-    mock_cursor.commit.return_value = None
-
-    # Mock the get_db_connection context manager from sql_utils
-    @contextmanager
-    def mock_get_db_connection():
-        yield mock_conn  # Yield the mocked connection object
-
-    mocker.patch("boxing.models.ring_model.get_db_connection", mock_get_db_connection)
-
-    return mock_cursor  # Return the mock cursor so we can set expectations per test
+    ring_model.enter_ring(sample_boxer1)
+    assert len(ring_model.ring) == 1, "Ring should contain one boxer."
+    assert ring_model.ring[0] == sample_boxer1, "The added boxer is not in the ring."
 
 
-######################################################
-#
-#    Add and delete
-#
-######################################################
 
-
-def test_create_song(mock_cursor):
-    """Test creating a new song in the catalog.
+def test_enter_ring_two_boxers(ring_model, sample_boxer1,sample_boxer2):
+    """Test that 2 valid Boxers can be added to the ring.
 
     """
-    create_song(artist="Artist Name", title="Song Title", year=2022, genre="Pop", duration=180)
+    ring_model.enter_ring(sample_boxer1)
+    ring_model.enter_ring(sample_boxer2)
+    assert len(ring_model.ring) == 2, "Ring should contain two boxers."
+    assert ring_model.ring[0] == sample_boxer1, "The first boxer is not in the ring."
+    assert ring_model.ring[1] == sample_boxer2, "The second boxer is not in the ring."
 
-    expected_query = normalize_whitespace("""
-        INSERT INTO songs (artist, title, year, genre, duration)
-        VALUES (?, ?, ?, ?, ?)
-    """)
-    actual_query = normalize_whitespace(mock_cursor.execute.call_args[0][0])
+    
 
-    assert actual_query == expected_query, "The SQL query did not match the expected structure."
-
-    # Extract the arguments used in the SQL call (second element of call_args)
-    actual_arguments = mock_cursor.execute.call_args[0][1]
-    expected_arguments = ("Artist Name", "Song Title", 2022, "Pop", 180)
-
-    assert actual_arguments == expected_arguments, f"The SQL query arguments did not match. Expected {expected_arguments}, got {actual_arguments}."
-
-
-def test_create_song_duplicate(mock_cursor):
-    """Test creating a song with a duplicate artist, title, and year (should raise an error).
+def test_enter_ring_while_full(ring_model, sample_boxer1, sample_boxer2, sample_boxer3):
+    """Test error when trying add a Boxer to a full ring.
 
     """
-    # Simulate that the database will raise an IntegrityError due to a duplicate entry
-    mock_cursor.execute.side_effect = sqlite3.IntegrityError("UNIQUE constraint failed: songs.artist, songs.title, songs.year")
+    ring_model.enter_ring(sample_boxer1)
+    ring_model.enter_ring(sample_boxer2)
+    
+    with pytest.raises(ValueError, match="Ring is full, cannot add more boxers."):
+        ring_model.enter_ring(sample_boxer3)
 
-    with pytest.raises(ValueError, match="Song with artist 'Artist Name', title 'Song Title', and year 2022 already exists."):
-        create_song(artist="Artist Name", title="Song Title", year=2022, genre="Pop", duration=180)
-
-
-def test_create_song_invalid_duration():
-    """Test error when trying to create a song with an invalid duration (e.g., negative duration)
-
-    """
-    with pytest.raises(ValueError, match=r"Invalid duration: -180 \(must be a positive integer\)."):
-        create_song(artist="Artist Name", title="Song Title", year=2022, genre="Pop", duration=-180)
-
-    with pytest.raises(ValueError, match=r"Invalid duration: invalid \(must be a positive integer\)."):
-        create_song(artist="Artist Name", title="Song Title", year=2022, genre="Pop", duration="invalid")
-
-
-def test_create_song_invalid_year():
-    """Test error when trying to create a song with an invalid year (e.g., less than 1900 or non-integer).
+def test_enter_ring_invalid_type(ring_model):
+    """Test error when adding a non-Boxer object.
 
     """
-    with pytest.raises(ValueError, match=r"Invalid year: 1899 \(must be an integer greater than or equal to 1900\)."):
-        create_song(artist="Artist Name", title="Song Title", year=1899, genre="Pop", duration=180)
+    nonboxer = "NOT A BOXER"
+    
+    with pytest.raises(TypeError, match="Invalid type: Expected 'Boxer'"):
+        ring_model.enter_ring(nonboxer)
 
-    with pytest.raises(ValueError, match=r"Invalid year: invalid \(must be an integer greater than or equal to 1900\)."):
-        create_song(artist="Artist Name", title="Song Title", year="invalid", genre="Pop", duration=180)
-
-
-def test_delete_song(mock_cursor):
-    """Test deleting a song from the catalog by song ID.
-
+def test_fight_with_insufficient_boxers(ring_model, sample_boxer1):
     """
-    # Simulate the existence of a song w/ id=1
-    # We can use any value other than None
-    mock_cursor.fetchone.return_value = (True)
-
-    delete_song(1)
-
-    expected_select_sql = normalize_whitespace("SELECT id FROM songs WHERE id = ?")
-    expected_delete_sql = normalize_whitespace("DELETE FROM songs WHERE id = ?")
-
-    # Access both calls to `execute()` using `call_args_list`
-    actual_select_sql = normalize_whitespace(mock_cursor.execute.call_args_list[0][0][0])
-    actual_delete_sql = normalize_whitespace(mock_cursor.execute.call_args_list[1][0][0])
-
-    assert actual_select_sql == expected_select_sql, "The SELECT query did not match the expected structure."
-    assert actual_delete_sql == expected_delete_sql, "The UPDATE query did not match the expected structure."
-
-    # Ensure the correct arguments were used in both SQL queries
-    expected_select_args = (1,)
-    expected_delete_args = (1,)
-
-    actual_select_args = mock_cursor.execute.call_args_list[0][0][1]
-    actual_delete_args = mock_cursor.execute.call_args_list[1][0][1]
-
-    assert actual_select_args == expected_select_args, f"The SELECT query arguments did not match. Expected {expected_select_args}, got {actual_select_args}."
-    assert actual_delete_args == expected_delete_args, f"The UPDATE query arguments did not match. Expected {expected_delete_args}, got {actual_delete_args}."
-
-
-def test_delete_song_bad_id(mock_cursor):
-    """Test error when trying to delete a non-existent song.
-
+    Test that starting a fight with fewer than two boxers.
     """
-    # Simulate that no song exists with the given ID
-    mock_cursor.fetchone.return_value = None
+    ring_model.enter_ring(sample_boxer1)
 
-    with pytest.raises(ValueError, match="Song with ID 999 not found"):
-        delete_song(999)
+    with pytest.raises(ValueError, match="There must be two boxers to start a fight."):
+        ring_model.fight()
 
-
-######################################################
-#
-#    Get Song
-#
-######################################################
-
-
-def test_get_song_by_id(mock_cursor):
-    """Test getting a song by id.
-
+def test_clear_ring(ring_model, sample_boxer1, sample_boxer2):
     """
-    mock_cursor.fetchone.return_value = (1, "Artist Name", "Song Title", 2022, "Pop", 180, False)
-
-    result = get_song_by_id(1)
-
-    expected_result = Song(1, "Artist Name", "Song Title", 2022, "Pop", 180)
-
-    assert result == expected_result, f"Expected {expected_result}, got {result}"
-
-    expected_query = normalize_whitespace("SELECT id, artist, title, year, genre, duration FROM songs WHERE id = ?")
-    actual_query = normalize_whitespace(mock_cursor.execute.call_args[0][0])
-
-    assert actual_query == expected_query, "The SQL query did not match the expected structure."
-
-    actual_arguments = mock_cursor.execute.call_args[0][1]
-    expected_arguments = (1,)
-
-    assert actual_arguments == expected_arguments, f"The SQL query arguments did not match. Expected {expected_arguments}, got {actual_arguments}."
-
-
-def test_get_song_by_id_bad_id(mock_cursor):
-    """Test error when getting a non-existent song.
-
+    Test to clear the ring.
     """
-    mock_cursor.fetchone.return_value = None
 
-    with pytest.raises(ValueError, match="Song with ID 999 not found"):
-        get_song_by_id(999)
+    ring_model.enter_ring(sample_boxer1)
+    ring_model.enter_ring(sample_boxer2)
 
+    assert len(ring_model.ring) == 2, "Ring should contain two boxers."
 
-def test_get_song_by_compound_key(mock_cursor):
-    """Test getting a song by compound key.
+    ring_model.clear_ring()
+    assert len(ring_model.ring) == 0, "Ring should be empty after clearing."
 
+def test_get_boxers(ring_model, sample_boxer1, sample_boxer2):
     """
-    mock_cursor.fetchone.return_value = (1, "Artist Name", "Song Title", 2022, "Pop", 180, False)
-
-    result = get_song_by_compound_key("Artist Name", "Song Title", 2022)
-
-    expected_result = Song(1, "Artist Name", "Song Title", 2022, "Pop", 180)
-
-    assert result == expected_result, f"Expected {expected_result}, got {result}"
-
-    expected_query = normalize_whitespace("SELECT id, artist, title, year, genre, duration FROM songs WHERE artist = ? AND title = ? AND year = ?")
-    actual_query = normalize_whitespace(mock_cursor.execute.call_args[0][0])
-
-    assert actual_query == expected_query, "The SQL query did not match the expected structure."
-
-    actual_arguments = mock_cursor.execute.call_args[0][1]
-    expected_arguments = ("Artist Name", "Song Title", 2022)
-
-    assert actual_arguments == expected_arguments, f"The SQL query arguments did not match. Expected {expected_arguments}, got {actual_arguments}."
-
-
-def test_get_song_by_compound_key_bad_id(mock_cursor):
-    """Test error when getting a non-existent song.
-
+    Test to get the boxers in the ring.
     """
-    mock_cursor.fetchone.return_value = None
+    
+    ring_model.enter_ring(sample_boxer1)
+    ring_model.enter_ring(sample_boxer2)
 
-    with pytest.raises(ValueError, match="Song with artist 'Artist Name', title 'Song Title', and year 2022 not found"):
-        get_song_by_compound_key("Artist Name", "Song Title", 2022)
+    boxers = ring_model.get_boxers()
 
+    assert len(boxers) == 2, "Should retrieve the two boxers from the ring."
+    assert boxers[0] == sample_boxer1, "First boxer does not match."
+    assert boxers[1] == sample_boxer2, "Second boxer does not match."
 
-def test_get_all_songs(mock_cursor):
-    """Test retrieving all songs.
-
+def test_get_fighting_skill(ring_model, sample_boxer1):
     """
-    mock_cursor.fetchall.return_value = [
-        (1, "Artist A", "Song A", 2020, "Rock", 210, 10, False),
-        (2, "Artist B", "Song B", 2021, "Pop", 180, 20, False),
-        (3, "Artist C", "Song C", 2022, "Jazz", 200, 5, False)
-    ]
-
-    songs = get_all_songs()
-
-    expected_result = [
-        {"id": 1, "artist": "Artist A", "title": "Song A", "year": 2020, "genre": "Rock", "duration": 210, "play_count": 10},
-        {"id": 2, "artist": "Artist B", "title": "Song B", "year": 2021, "genre": "Pop", "duration": 180, "play_count": 20},
-        {"id": 3, "artist": "Artist C", "title": "Song C", "year": 2022, "genre": "Jazz", "duration": 200, "play_count": 5}
-    ]
-
-    assert songs == expected_result, f"Expected {expected_result}, but got {songs}"
-
-    expected_query = normalize_whitespace("""
-        SELECT id, artist, title, year, genre, duration, play_count
-        FROM songs
-    """)
-    actual_query = normalize_whitespace(mock_cursor.execute.call_args[0][0])
-
-    assert actual_query == expected_query, "The SQL query did not match the expected structure."
-
-
-def test_get_all_songs_empty_catalog(mock_cursor, caplog):
-    """Test that retrieving all songs returns an empty list when the catalog is empty and logs a warning.
-
+    Test the `get_fighting_skill` method calculates skill correctly.
     """
-    mock_cursor.fetchall.return_value = []
+ 
+    skill = ring_model.get_fighting_skill(sample_boxer1)
 
-    result = get_all_songs()
+    expected_skill = (180 * len(sample_boxer1.name)) + (75 / 10)  # Simplified calculation
+    assert skill == expected_skill, f"Expected skill to be {expected_skill}, got {skill}."
 
-    assert result == [], f"Expected empty list, but got {result}"
+def test_fight_valid(mock_clear_ring, mock_update_boxer_stats, mock_get_random, mock_get_fighting_skill, ring_model, sample_boxer1, sample_boxer2):
+    """Test a valid fight with two boxers."""
+    # Add two boxers to the ring
+    ring_model.enter_ring(sample_boxer1)
+    ring_model.enter_ring(sample_boxer2)
 
-    assert "The song catalog is empty." in caplog.text, "Expected warning about empty catalog not found in logs."
+    # Define the fighting skills of each boxer
+    mock_get_fighting_skill.side_effect = [10, 5]  # boxer_1 skill = 10, boxer_2 skill = 5
 
-    expected_query = normalize_whitespace("SELECT id, artist, title, year, genre, duration, play_count FROM songs")
-    actual_query = normalize_whitespace(mock_cursor.execute.call_args[0][0])
+    # Simulate a random number for the fight outcome (Boxer 1 wins)
+    mock_get_random.return_value = 0.8
 
-    assert actual_query == expected_query, "The SQL query did not match the expected structure."
+    # Run the fight method
+    winner = ring_model.fight()
 
+    # Assertions
+    mock_get_fighting_skill.assert_any_call(sample_boxer1)  # Ensure skill of boxer_1 was fetched
+    mock_get_fighting_skill.assert_any_call(sample_boxer2)  # Ensure skill of boxer_2 was fetched
+    mock_get_random.assert_called_once()  # Ensure random number was generated
+    mock_update_boxer_stats.assert_any_call(sample_boxer1.id, 'win')  # Ensure winner stats updated
+    mock_update_boxer_stats.assert_any_call(sample_boxer2.id, 'loss')  # Ensure loser stats updated
+    mock_clear_ring.assert_called_once()  # Ensure the ring was cleared
 
-def test_get_all_songs_ordered_by_play_count(mock_cursor):
-    """Test retrieving all songs ordered by play count.
+    assert winner == sample_boxer1.name  # Ensure the winner is boxer_1
 
+def test_fight_insufficient_boxers(ring_model, sample_boxer1):
     """
-    mock_cursor.fetchall.return_value = [
-        (2, "Artist B", "Song B", 2021, "Pop", 180, 20),
-        (1, "Artist A", "Song A", 2020, "Rock", 210, 10),
-        (3, "Artist C", "Song C", 2022, "Jazz", 200, 5)
-    ]
-
-    songs = get_all_songs(sort_by_play_count=True)
-
-    expected_result = [
-        {"id": 2, "artist": "Artist B", "title": "Song B", "year": 2021, "genre": "Pop", "duration": 180, "play_count": 20},
-        {"id": 1, "artist": "Artist A", "title": "Song A", "year": 2020, "genre": "Rock", "duration": 210, "play_count": 10},
-        {"id": 3, "artist": "Artist C", "title": "Song C", "year": 2022, "genre": "Jazz", "duration": 200, "play_count": 5}
-    ]
-
-    assert songs == expected_result, f"Expected {expected_result}, but got {songs}"
-
-    expected_query = normalize_whitespace("""
-        SELECT id, artist, title, year, genre, duration, play_count
-        FROM songs
-        ORDER BY play_count DESC
-    """)
-    actual_query = normalize_whitespace(mock_cursor.execute.call_args[0][0])
-
-    assert actual_query == expected_query, "The SQL query did not match the expected structure."
-
-
-def test_get_random_song(mock_cursor, mocker):
-    """Test retrieving a random song from the catalog.
-
+    Test the fight when there are less than two boxers in the ring.
     """
-    mock_cursor.fetchall.return_value = [
-        (1, "Artist A", "Song A", 2020, "Rock", 210, 10),
-        (2, "Artist B", "Song B", 2021, "Pop", 180, 20),
-        (3, "Artist C", "Song C", 2022, "Jazz", 200, 5)
-    ]
-
-    # Mock random number generation to return the 2nd song
-    mock_random = mocker.patch("playlist.models.song_model.get_random", return_value=2)
-
-    result = get_random_song()
-
-    expected_result = Song(2, "Artist B", "Song B", 2021, "Pop", 180)
-    assert result == expected_result, f"Expected {expected_result}, got {result}"
-
-    # Ensure that the random number was called with the correct number of songs
-    mock_random.assert_called_once_with(3)
-
-    expected_query = normalize_whitespace("SELECT id, artist, title, year, genre, duration, play_count FROM songs")
-    actual_query = normalize_whitespace(mock_cursor.execute.call_args[0][0])
-
-    assert actual_query == expected_query, "The SQL query did not match the expected structure."
-
-
-def test_get_random_song_empty_catalog(mock_cursor, mocker):
-    """Test retrieving a random song when the catalog is empty.
-
-    """
-    mock_cursor.fetchall.return_value = []
-
-    mock_random = mocker.patch("playlist.models.song_model.get_random")
-
-    with pytest.raises(ValueError, match="The song catalog is empty"):
-        get_random_song()
-
-    # Ensure that the random number was not called since there are no songs
-    mock_random.assert_not_called()
-
-    expected_query = normalize_whitespace("SELECT id, artist, title, year, genre, duration, play_count FROM songs ")
-    actual_query = normalize_whitespace(mock_cursor.execute.call_args[0][0])
-
-    assert actual_query == expected_query, "The SQL query did not match the expected structure."
-
-
-######################################################
-#
-#    Play count
-#
-######################################################
-
-
-def test_update_play_count(mock_cursor):
-    """Test updating the play count of a song.
-
-    """
-    mock_cursor.fetchone.return_value = True
-
-    song_id = 1
-    update_play_count(song_id)
-
-    expected_query = normalize_whitespace("""
-        UPDATE songs SET play_count = play_count + 1 WHERE id = ?
-    """)
-    actual_query = normalize_whitespace(mock_cursor.execute.call_args_list[1][0][0])
-
-    assert actual_query == expected_query, "The SQL query did not match the expected structure."
-
-    actual_arguments = mock_cursor.execute.call_args_list[1][0][1]
-    expected_arguments = (song_id,)
-
-    assert actual_arguments == expected_arguments, f"The SQL query arguments did not match. Expected {expected_arguments}, got {actual_arguments}."
+  
+    ring_model.enter_ring(sample_boxer1)
+    
+    try:
+        ring_model.fight()
+        assert False, "ValueError expected but not raised."
+    except ValueError as e:
+        assert str(e) == "There must be two boxers to start a fight.", f"Unexpected error message: {str(e)}"
