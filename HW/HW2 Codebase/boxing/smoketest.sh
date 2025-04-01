@@ -186,6 +186,124 @@ clear_ring() {
   fi
 }
 
+# Function to test adding a valid boxer to the ring
+enter_ring_valid_boxer() {
+  boxer_id=$1
+
+  echo "Entering ring with valid boxer ID ($boxer_id)..."
+  response=$(curl -s -X POST "$BASE_URL/enter-ring" -d "boxer_id=$boxer_id")
+  if echo "$response" | grep -q '"status": "success"'; then
+    echo "Boxer entered successfully by ID ($boxer_id)."
+  else
+    echo "Failed to enter ring with boxer ID ($boxer_id)."
+    exit 1
+  fi
+}
+
+# Function to test adding two valid boxers to the ring
+enter_ring_two_boxers() {
+  boxer_id1=$1
+  boxer_id2=$2
+
+  echo "Entering ring with boxers ID ($boxer_id1) and ID ($boxer_id2)..."
+  response=$(curl -s -X POST "$BASE_URL/enter-ring" -d "boxer_id=$boxer_id1")
+  response=$(curl -s -X POST "$BASE_URL/enter-ring" -d "boxer_id=$boxer_id2")
+  if echo "$response" | grep -q '"status": "success"'; then
+    echo "Two boxers entered successfully by ID ($boxer_id1) and ID ($boxer_id2)."
+  else
+    echo "Failed to enter ring with boxers ID ($boxer_id1) and ID ($boxer_id2)."
+    exit 1
+  fi
+}
+
+# Function to test adding a boxer when the ring is full
+enter_ring_while_full() {
+  boxer_id1=$1
+  boxer_id2=$2
+  boxer_id3=$3
+
+  echo "Entering ring with boxer ID ($boxer_id1) and ID ($boxer_id2), then attempting to add ID ($boxer_id3)..."
+  response=$(curl -s -X POST "$BASE_URL/enter-ring" -d "boxer_id=$boxer_id1")
+  response=$(curl -s -X POST "$BASE_URL/enter-ring" -d "boxer_id=$boxer_id2")
+  response=$(curl -s -X POST "$BASE_URL/enter-ring" -d "boxer_id=$boxer_id3")
+  if echo "$response" | grep -q '"status": "error"'; then
+    echo "Error expected: Ring is full, cannot add more boxers."
+  else
+    echo "Ring is not full, boxer ID ($boxer_id3) entered unexpectedly."
+    exit 1
+  fi
+}
+
+# Function to test starting a fight with insufficient boxers
+fight_with_insufficient_boxers() {
+  boxer_id=$1
+
+  echo "Attempting to start a fight with less than two boxers..."
+  response=$(curl -s -X POST "$BASE_URL/start-fight")
+  if echo "$response" | grep -q '"status": "error"'; then
+    echo "Error: Not enough boxers to start a fight."
+  else
+    echo "Fight started unexpectedly with insufficient boxers."
+    exit 1
+  fi
+}
+
+
+# Function to test getting all boxers in the ring
+get_boxers() {
+  echo "Retrieving boxers from the ring..."
+  response=$(curl -s -X GET "$BASE_URL/get-boxers")
+  if echo "$response" | grep -q '"status": "success"'; then
+    echo "Boxers retrieved successfully."
+  else
+    echo "Failed to retrieve boxers."
+    exit 1
+  fi
+}
+
+# Function to test calculating fighting skill of a boxer
+get_fighting_skill() {
+  boxer_id=$1
+
+  echo "Getting fighting skill for boxer ID ($boxer_id)..."
+  response=$(curl -s -X GET "$BASE_URL/get-fighting-skill?boxer_id=$boxer_id")
+  if echo "$response" | grep -q '"status": "success"'; then
+    echo "Fighting skill retrieved for boxer ID ($boxer_id)."
+  else
+    echo "Failed to retrieve fighting skill for boxer ID ($boxer_id)."
+    exit 1
+  fi
+}
+
+# Function to test starting a valid fight between two boxers
+fight_valid() {
+  boxer_id1=$1
+  boxer_id2=$2
+
+  echo "Starting fight between boxer ID ($boxer_id1) and ID ($boxer_id2)..."
+  response=$(curl -s -X POST "$BASE_URL/start-fight")
+  if echo "$response" | grep -q '"status": "success"'; then
+    echo "Fight started successfully between boxer ID ($boxer_id1) and ID ($boxer_id2)."
+  else
+    echo "Failed to start fight between boxer ID ($boxer_id1) and ID ($boxer_id2)."
+    exit 1
+  fi
+}
+
+# Function to test fight with insufficient boxers
+fight_insufficient_boxers() {
+  boxer_id=$1
+
+  echo "Attempting to start a fight with only one boxer (ID: $boxer_id)..."
+  response=$(curl -s -X POST "$BASE_URL/start-fight")
+  if echo "$response" | grep -q '"status": "error"'; then
+    echo "Error: Not enough boxers to start a fight."
+  else
+    echo "Unexpectedly started a fight with insufficient boxers."
+    exit 1
+  fi
+}
+
 
 ##########################################################
 #
