@@ -23,6 +23,12 @@ def ring_model():
     """Fixture to provide a new instance of RingModel for each test."""
     return RingModel()
 
+@pytest.fixture()
+def mock_clear_ring(mocker):
+    """Mock the clear_ring method in the RingModel."""
+    mock_clear = mocker.patch("boxing.models.ring_model.RingModel.clear_ring")
+    return mock_clear
+
 
 def test_enter_ring_valid_boxer(ring_model, sample_boxer1):
     """Test that a valid Boxer can be added to the ring.
@@ -112,8 +118,11 @@ def test_get_fighting_skill(ring_model, sample_boxer1):
     expected_skill = (180 * len(sample_boxer1.name)) + (75 / 10)  # Simplified calculation
     assert skill == expected_skill, f"Expected skill to be {expected_skill}, got {skill}."
 
-def test_fight_valid(mock_clear_ring, mock_update_boxer_stats, mock_get_random, mock_get_fighting_skill, ring_model, sample_boxer1, sample_boxer2):
+
+
+def test_fight_valid(ring_model, sample_boxer1, sample_boxer2, mock_clear_ring, mock_update_boxer_stats, mock_get_random, mock_get_fighting_skill):
     """Test a valid fight with two boxers."""
+    
     # Add two boxers to the ring
     ring_model.enter_ring(sample_boxer1)
     ring_model.enter_ring(sample_boxer2)
@@ -127,7 +136,7 @@ def test_fight_valid(mock_clear_ring, mock_update_boxer_stats, mock_get_random, 
     # Run the fight method
     winner = ring_model.fight()
 
-    # Assertions
+    # Validate the expected side-effects and results
     mock_get_fighting_skill.assert_any_call(sample_boxer1)  # Ensure skill of boxer_1 was fetched
     mock_get_fighting_skill.assert_any_call(sample_boxer2)  # Ensure skill of boxer_2 was fetched
     mock_get_random.assert_called_once()  # Ensure random number was generated
