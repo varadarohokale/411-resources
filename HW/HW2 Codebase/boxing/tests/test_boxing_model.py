@@ -1,6 +1,6 @@
 import pytest
 import re
-from boxing.models.boxers_model import Boxer, create_boxer, delete_boxer, get_boxer_by_id, get_boxer_by_name, update_boxer_stats
+from boxing.models.boxers_model import Boxer, create_boxer, delete_boxer, get_boxer_by_id, get_boxer_by_name, get_weight_class
 from boxing.models.ring_model import RingModel
 from contextlib import contextmanager
 import sqlite3
@@ -175,3 +175,60 @@ def test_update_boxer_stats(mock_cursor, sample_boxer1, sample_boxer2):
     assert result in [sample_boxer1.name, sample_boxer2.name]
     mock_cursor.execute.assert_any_call("""UPDATE boxers SET fights = fights + 1, wins = wins + 1 WHERE id = ?""", (sample_boxer1.id,))
     mock_cursor.execute.assert_any_call("""UPDATE boxers SET fights = fights + 1 WHERE id = ?""", (sample_boxer2.id,))
+
+
+def test_get_weight_class_heavyweight():
+    """Test that a boxer with weight 203 or more is classified as HEAVYWEIGHT."""
+    weight = 203
+    result = get_weight_class(weight)
+    assert result == 'HEAVYWEIGHT', f"Expected 'HEAVYWEIGHT' but got {result}"
+
+def test_get_weight_class_middleweight():
+    """Test that a boxer with weight between 166 and 202 is classified as MIDDLEWEIGHT."""
+    weight = 170
+    result = get_weight_class(weight)
+    assert result == 'MIDDLEWEIGHT', f"Expected 'MIDDLEWEIGHT' but got {result}"
+
+def test_get_weight_class_lightweight():
+    """Test that a boxer with weight between 133 and 165 is classified as LIGHTWEIGHT."""
+    weight = 140
+    result = get_weight_class(weight)
+    assert result == 'LIGHTWEIGHT', f"Expected 'LIGHTWEIGHT' but got {result}"
+
+def test_get_weight_class_featherweight():
+    """Test that a boxer with weight between 125 and 132 is classified as FEATHERWEIGHT."""
+    weight = 130
+    result = get_weight_class(weight)
+    assert result == 'FEATHERWEIGHT', f"Expected 'FEATHERWEIGHT' but got {result}"
+
+def test_get_weight_class_invalid_weight():
+    """Test that a boxer with weight less than 125 raises a ValueError."""
+    weight = 120
+    with pytest.raises(ValueError, match="Invalid weight: 120. Weight must be at least 125."):
+        get_weight_class(weight)
+
+def test_get_weight_class_edge_case_heavyweight():
+    """Test the boundary case for HEAVYWEIGHT classification (weight = 203)."""
+    weight = 203
+    result = get_weight_class(weight)
+    assert result == 'HEAVYWEIGHT', f"Expected 'HEAVYWEIGHT' but got {result}"
+
+def test_get_weight_class_edge_case_middleweight():
+    """Test the boundary case for MIDDLEWEIGHT classification (weight = 166)."""
+    weight = 166
+    result = get_weight_class(weight)
+    assert result == 'MIDDLEWEIGHT', f"Expected 'MIDDLEWEIGHT' but got {result}"
+
+def test_get_weight_class_edge_case_lightweight():
+    """Test the boundary case for LIGHTWEIGHT classification (weight = 133)."""
+    weight = 133
+    result = get_weight_class(weight)
+    assert result == 'LIGHTWEIGHT', f"Expected 'LIGHTWEIGHT' but got {result}"
+
+def test_get_weight_class_edge_case_featherweight():
+    """Test the boundary case for FEATHERWEIGHT classification (weight = 125)."""
+    weight = 125
+    result = get_weight_class(weight)
+    assert result == 'FEATHERWEIGHT', f"Expected 'FEATHERWEIGHT' but got {result}"
+
+
