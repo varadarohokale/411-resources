@@ -1,6 +1,6 @@
 import pytest
 import re
-from boxing.models.boxers_model import Boxer, create_boxer, delete_boxer, get_boxer_by_id, get_boxer_by_name, get_weight_class
+from boxing.models.boxers_model import Boxer, create_boxer, delete_boxer, get_boxer_by_id, get_boxer_by_name, get_weight_class, get_leaderboard
 from boxing.models.ring_model import RingModel
 from contextlib import contextmanager
 import sqlite3
@@ -176,6 +176,10 @@ def test_update_boxer_stats(mock_cursor, sample_boxer1, sample_boxer2):
     mock_cursor.execute.assert_any_call("""UPDATE boxers SET fights = fights + 1, wins = wins + 1 WHERE id = ?""", (sample_boxer1.id,))
     mock_cursor.execute.assert_any_call("""UPDATE boxers SET fights = fights + 1 WHERE id = ?""", (sample_boxer2.id,))
 
+##################################################
+# Boxer Weight Test Cases
+##################################################
+
 
 def test_get_weight_class_heavyweight():
     """Test that a boxer with weight 203 or more is classified as HEAVYWEIGHT."""
@@ -230,5 +234,19 @@ def test_get_weight_class_edge_case_featherweight():
     weight = 125
     result = get_weight_class(weight)
     assert result == 'FEATHERWEIGHT', f"Expected 'FEATHERWEIGHT' but got {result}"
+
+##################################################
+# Boxer Leaderboard Test Cases
+##################################################
+
+# Example test code for leaderboard by wins
+# Test case for sorting by wins
+
+# Test case for invalid 'sort_by' parameter
+def test_get_leaderboard_invalid_sort_by(mock_cursor):
+    """Test for invalid sort_by parameter in get_leaderboard."""
+    
+    with pytest.raises(ValueError, match="Invalid sort_by parameter: invalid_sort"):
+        get_leaderboard(sort_by="invalid_sort")
 
 

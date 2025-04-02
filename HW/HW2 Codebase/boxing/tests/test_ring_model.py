@@ -3,7 +3,6 @@ from contextlib import contextmanager
 import pytest
 from boxing.models.boxers_model import Boxer
 from boxing.models.ring_model import RingModel
-from boxing.utils.sql_utils import get_db_connection
 
 
 @pytest.fixture()

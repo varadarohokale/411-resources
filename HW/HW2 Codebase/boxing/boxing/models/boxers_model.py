@@ -179,6 +179,9 @@ def get_leaderboard(sort_by: str = "wins") -> List[dict[str, Any]]:
             }
             leaderboard.append(boxer)
 
+        # Log the leaderboard for debugging
+        
+
         logger.info("Sucessfully fetched leaderboard.")
         return leaderboard
 
