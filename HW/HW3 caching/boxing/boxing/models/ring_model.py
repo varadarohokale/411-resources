@@ -193,6 +193,8 @@ class RingModel:
         """Clears the local TTL cache of boxer objects.
 
         """
+
         self._boxer_cache.clear()
         self._ttl.clear()
+
         logger.info("Clearing local boxer cache in RingModel.")
