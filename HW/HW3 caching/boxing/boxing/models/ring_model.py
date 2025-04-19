@@ -150,20 +150,22 @@ class RingModel:
         boxer_list=[]
         for boxer_id in self.ring:
             if boxer_id in self._boxer_cache and self.ttl.get(boxer_id, 0) >now:
+                logger.debug(f"Using cached boxer {boxer_id} (TTL valid).")
                 logger.debug(f"Boxer ID {boxer_id} retrieved from cache")
                 boxer = self._boxer_cache[boxer_id]
-            
-            try: 
-                boxer = Boxers.get_boxer_by_id(boxer_id)
-                logger.info(f"Boxer ID {boxer_id} loaded from DB")
-            except ValueError as e:
-                logger.error(f"Boxer ID {boxer_id} not found in DB: {e}")
-                raise ValueError(f"Boxer ID {boxer_id} not found in database") from e
-            
+            else:
+                logger.info(f"TTL expired or missing for boxer {boxer_id}. Refreshing from DB.")
+                try: 
+                    boxer = Boxers.get_boxer_by_id(boxer_id)
+                    logger.info(f"Boxer ID {boxer_id} loaded from DB")
+                except ValueError as e:
+                    logger.error(f"Boxer ID {boxer_id} not found in DB: {e}")
+                    raise ValueError(f"Boxer ID {boxer_id} not found in database") from e
+                
             self._boxer_cache[boxer_id] = boxer
-            self.ttl[boxer_id] = now + self.ttl_seconds
+            self._ttl[boxer_id] = now + self.ttl_seconds
             boxer_list.append(boxer)
-        logger.info(f"Retrieved {len(boxers)} boxers from the ring.")
+        logger.info(f"Retrieved {len(boxer_list)} boxers from the ring.")
         return boxer_list
     def get_fighting_skill(self, boxer: Boxers) -> float:
         """Calculates the fighting skill for a boxer based on arbitrary rules.
