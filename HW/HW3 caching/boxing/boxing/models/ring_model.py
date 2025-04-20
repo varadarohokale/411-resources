@@ -100,8 +100,6 @@ class RingModel:
             return
         logger.info("Clearing the boxers from the ring.")
         self.ring.clear()
-        self.clear_cache() 
-
 
     def enter_ring(self, boxer_id: int):
         """Prepares a boxer by adding them to the ring for an upcoming fight.
