@@ -40,7 +40,7 @@ class Boxers(db.Model):
             age (int): The boxer's age. Must be between 18 and 40, inclusive.
 
         Notes:
-            - The boxer's weight class is automatically assigned based on weight.
+            - The boxer's weight class is automatically assigned basepython -m pytesteight.
             - Fight statistics (`fights` and `wins`) are initialized to 0 by default in the database schema.
 
         """

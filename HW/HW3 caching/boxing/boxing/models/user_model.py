@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 configure_logger(logger)
 
 
-class Users():
+class Users(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
