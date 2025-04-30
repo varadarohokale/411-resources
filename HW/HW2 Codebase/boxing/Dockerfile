@@ -23,6 +23,8 @@ RUN apt-get update && apt-get install -y sqlite3
 COPY ./sql/create_db.sh /app/sql/create_db.sh
 COPY ./sql/init_db.sql /app/sql/init_db.sql
 RUN chmod +x /app/sql/create_db.sh
+RUN chmod +x /app/entrypoint.sh
+
 
 # Define a volume for persisting the database
 VOLUME ["/app/db"]
